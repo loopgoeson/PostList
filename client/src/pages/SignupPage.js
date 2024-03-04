@@ -1,80 +1,122 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; 
-import { Formik, Form, Field, ErrorMessage } from 'formik';
-import * as Yup from 'yup';
-import validator from 'validator'; 
+import { useState } from "react";
+import { Link , useNavigate } from "react-router-dom";
+import validator from 'validator';
 
-const SignupPage = () => {
-  const navigate = useNavigate(); 
-  const [successMessage, setSuccessMessage] = useState('');
+export default function SignupPage() {
+  const navigate=useNavigate();
+  const [formData, setFormData] = useState({});
+  const [errors, setErrors] = useState({});
 
-  const initialValues = {
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    termsAndConditions: false
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+    console.log(formData);
   };
 
-  const validationSchema = Yup.object().shape({
-    username: Yup.string().required('Username is required'),
-    email: Yup.string().email('Invalid email format').test('valid-email', 'Invalid email format', value => validator.isEmail(value)).required('Email is required'), // Validate email using validator
-    password: Yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
-    confirmPassword: Yup.string().oneOf([Yup.ref('password'), null], 'Passwords must match').required('Confirm password is required'),
-    termsAndConditions: Yup.boolean().oneOf([true], 'You must accept the terms and conditions')
-  });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (validateForm()) {
+      const res = await fetch('http://localhost:3000/api/auth/signup', {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      console.log(data);
+      navigate('/postlist');
+    }
+  };
 
-  const handleSubmit = (values, { setSubmitting }) => {
-    setTimeout(() => {
-      setSuccessMessage('Signup successful! Welcome email sent.');
-      setSubmitting(false);
-      navigate('/post-list'); 
-    }, 1000);
+  const validateForm = () => {
+    let isValid = true;
+    const newErrors = {};
+
+    if (!validator.isEmail(formData.email)) {
+      newErrors.email = 'Invalid email format';
+      isValid = false;
+    }
+
+    if (!formData.username) {
+      newErrors.username = 'Username is required';
+      isValid = false;
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+      isValid = false;
+    }
+
+    if (formData.password !== formData['confirm-password']) {
+      newErrors.confirmPassword = 'Passwords do not match';
+      isValid = false;
+    }
+
+    if (!formData['terms-and-conditions']) {
+      newErrors.termsAndConditions = 'You must accept the terms and conditions';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gray-100">
-      <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl items-center font-semibold mb-6">Signup</h2>
-        <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleSubmit}>
-          {({ isSubmitting }) => (
-            <Form>
-              <div className="mb-4">
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700">Username</label>
-                <Field type="text" name="username" id="username" className="mt-1 p-2 w-full border rounded-md" />
-                <ErrorMessage name="username" component="div" className="text-red-500 text-sm" />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-                <Field type="email" name="email" id="email" className="mt-1 p-2 w-full border rounded-md" />
-                <ErrorMessage name="email" component="div" className="text-red-500 text-sm" />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-                <Field type="password" name="password" id="password" className="mt-1 p-2 w-full border rounded-md" />
-                <ErrorMessage name="password" component="div" className="text-red-500 text-sm" />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>
-                <Field type="password" name="confirmPassword" id="confirmPassword" className="mt-1 p-2 w-full border rounded-md" />
-                <ErrorMessage name="confirmPassword" component="div" className="text-red-500 text-sm" />
-              </div>
-              <div className="mb-4">
-                <label htmlFor="termsAndConditions" className="flex items-center">
-                  <Field type="checkbox" name="termsAndConditions" id="termsAndConditions" className="form-checkbox h-5 w-5 text-indigo-600" />
-                  <span className="ml-2 text-sm text-gray-700">I agree to the terms and conditions</span>
-                </label>
-                <ErrorMessage name="termsAndConditions" component="div" className="text-red-500 text-sm" />
-              </div>
-              <button type="submit" className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700" disabled={isSubmitting}>Signup</button>
-              <ErrorMessage name="general" component="div" className="text-red-500 text-sm mt-2" />
-            </Form>
-          )}
-        </Formik>
-        {successMessage && <div className="text-green-600 text-sm mt-2">{successMessage}</div>}
+    <div className="p-3 max-w-lg mx-auto">
+      <h1 className="text-3xl text-center font-semibold my-7">Sign Up</h1>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <input
+          type="text"
+          placeholder="Username"
+          id="username"
+          className="bg-slate-100 p-3 rounded-lg"
+          onChange={handleChange}
+        />
+        {errors.username && <span className="text-red-500">{errors.username}</span>}
+        <input
+          type="email"
+          placeholder="Email"
+          id="email"
+          className="bg-slate-100 p-3 rounded-lg"
+          onChange={handleChange}
+        />
+        {errors.email && <span className="text-red-500">{errors.email}</span>}
+        <input
+          type="password"
+          placeholder="Password"
+          id="password"
+          className="bg-slate-100 p-3 rounded-lg"
+          onChange={handleChange}
+        />
+        {errors.password && <span className="text-red-500">{errors.password}</span>}
+        <input
+          type="password"
+          placeholder="Confirm Password"
+          id="confirm-password"
+          className="bg-slate-100 p-3 rounded-lg"
+          onChange={handleChange}
+        />
+        {errors.confirmPassword && <span className="text-red-500">{errors.confirmPassword}</span>}
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="terms-and-conditions"
+            className="form-checkbox h-5 w-5 text-indigo-600"
+            onChange={handleChange}
+          />
+          <span>I agree to the terms and conditions</span>
+        </label>
+        {errors.termsAndConditions && <span className="text-red-500">{errors.termsAndConditions}</span>}
+        <button className="bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95 disabled:opacity-80">
+          SignUp
+        </button>
+      </form>
+      <div className="flex gap-2 mt-5">
+        <p>Have an account ?</p>
+        <Link to="/signin">
+          <span className="text-blue-500">Sign in</span>
+        </Link>
       </div>
     </div>
   );
-};
-
-export default SignupPage;
+}
